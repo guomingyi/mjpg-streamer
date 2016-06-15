@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# . /home/android/pi/github/mjpg-streamer/exec &
+
+export LD_LIBRARY_PATH="$(pwd)"
+
+
+cd /home/android/pi/github/mjpg-streamer/main/
+
+./mjpg_streamer -i "./plugins/input_testpicture/input_testpicture.so -r 320x240" -o "./output_http.so -p 8080 -w ./www"
+
+
+
+
+
+
+
+
+
+
+
