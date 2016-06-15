@@ -270,6 +270,13 @@ int main(int argc, char *argv[])
         closelog();
         exit(EXIT_FAILURE);
     }
+	
+    /* register signal handler for <CTRL>+Z in order to clean up */
+    if(signal(SIGTSTP, signal_handler) == SIG_ERR) {
+        LOG("could not register signal handler\n");
+        closelog();
+        exit(EXIT_FAILURE);
+    }
 
     /*
      * messages like the following will only be visible on your terminal
