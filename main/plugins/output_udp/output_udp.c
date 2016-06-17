@@ -108,6 +108,50 @@ void worker_cleanup(void *arg)
     close(fd);
 }
 
+static int send_socket_fd = -1;
+static int send_socket_init(void)
+{    
+    printf("send_socket_init\n");
+    if(send_socket_fd > 0) {
+    	return 0;
+    }
+    
+    if((send_socket_fd = socket(AF_INET,SOCK_DGRAM,0)) < 0) {
+    	perror("socket");
+    	return -1;
+    }
+	
+    int on = 1; 
+    if((setsockopt(send_socket_fd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)))<0)  {  
+    	perror("setsockopt failed");  
+    	return -1;
+    }  
+    
+    return 0;
+}
+
+static int sendToRemoteServer(struct sockaddr_in *client, char *data, int len, int port) {
+    int size = sizeof(struct sockaddr_in);
+    client->sin_port = htons(port);
+	char buf[100] = {0};
+	
+    if(data == NULL) {
+		data = buf;
+		len = sprintf(data, "reply:1101");
+	}
+
+	
+	DBG("sendToRemoteServer:%s,%d,%d\n",data,port,len);
+	
+    if(sendto(send_socket_fd, data, len, 0, (struct sockaddr*)client, size) < 0) {
+		perror("sendto");
+    	return -1;
+    }
+    return 0;
+}
+
+
+
 /******************************************************************************
 Description.: this is the main worker thread
               it loops forever, grabs a fresh frame and stores it to file
@@ -138,9 +182,21 @@ void *worker_thread(void *arg)
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
+
+	DBG("port:%d\n",port);
+
+    int on = 1; 
+    if((setsockopt(sd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)))<0) {  
+    	perror("setsockopt failed");  
+    	return -1;
+    }  
+
     if(bind(sd, (struct sockaddr*)&addr, sizeof(addr)) != 0)
         perror("bind");
     // -----------------------------------------------------------
+  
+    send_socket_init();
+
 
     while(ok >= 0 && !pglobal->stop) {
         DBG("waiting for a UDP message\n");
@@ -149,8 +205,6 @@ void *worker_thread(void *arg)
         memset(udpbuffer, 0, sizeof(udpbuffer));
         bytes = recvfrom(sd, udpbuffer, sizeof(udpbuffer), 0, (struct sockaddr*)&addr, &addr_len);
         // ---------------------------------------------------------
-
-
 
         DBG("waiting for fresh frame\n");
         pthread_mutex_lock(&pglobal->in[input_number].db);
@@ -179,6 +233,7 @@ void *worker_thread(void *arg)
         /* allow others to access the global buffer again */
         pthread_mutex_unlock(&pglobal->in[input_number].db);
 
+#if 0
         /* only save a file if a name came in with the UDP message */
         if(strlen(udpbuffer) > 0) {
             DBG("writing file: %s\n", udpbuffer);
@@ -199,9 +254,12 @@ void *worker_thread(void *arg)
 
             close(fd);
         }
-
+#endif
         // send back client's message that came in udpbuffer
-        sendto(sd, udpbuffer, bytes, 0, (struct sockaddr*)&addr, sizeof(addr));
+      //  sendto(sd, udpbuffer, bytes, 0, (struct sockaddr*)&addr, sizeof(addr));
+         sendToRemoteServer(&addr, frame, frame_size, 9427);
+        // sendToRemoteServer(&addr, NULL, 0, 9426);
+		
 
         /* call the command if user specified one, pass current filename as argument */
         if(command != NULL) {
