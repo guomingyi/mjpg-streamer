@@ -137,12 +137,10 @@ static int sendToRemoteServer(struct sockaddr_in *client, char *data, int len, i
 	
     if(data == NULL) {
 		data = buf;
-		len = sprintf(data, "reply:1101");
+		len = sprintf(data, "reply:0000");
 	}
 
-	
-	DBG("sendToRemoteServer:%s,%d,%d\n",data,port,len);
-	
+	DBG("sendToRemoteServer:port:%d,len:%d\n",port,len);
     if(sendto(send_socket_fd, data, len, 0, (struct sockaddr*)client, size) < 0) {
 		perror("sendto");
     	return -1;
