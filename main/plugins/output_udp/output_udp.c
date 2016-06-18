@@ -130,23 +130,60 @@ static int send_socket_init(void)
     return 0;
 }
 
-static int sendToRemoteServer(struct sockaddr_in *client, char *data, int len, int port) {
+//udp byte
+#define TAG_SIZE 2
+#define PKG_BUF_SIZE (30*1024)
+#define TOTAL_SEND_SIZE (TAG_SIZE + PKG_BUF_SIZE)
+static int sendToRemoteServer(struct sockaddr_in *client, char *frame, int len, int port) {
     int size = sizeof(struct sockaddr_in);
     client->sin_port = htons(port);
-	char buf[100] = {0};
-	
-    if(data == NULL) {
-		data = buf;
-		len = sprintf(data, "reply:0000");
+    
+    int i, j = 0;
+    int mj = len % PKG_BUF_SIZE;
+    int n = (mj > 0 ? 1 : 0);
+
+	if(len - PKG_BUF_SIZE > 0) {
+		n += (int)(len / PKG_BUF_SIZE);
 	}
 
-	DBG("sendToRemoteServer:port:%d,len:%d\n",port,len);
-    if(sendto(send_socket_fd, data, len, 0, (struct sockaddr*)client, size) < 0) {
-		perror("sendto");
-    	return -1;
+    char *p = frame;
+	int send_len = 0;
+	char s_buf[PKG_BUF_SIZE+1024] = {0};
+    
+    printf("sendToRemoteServer:port:%d,len:%d,mj:%d,n:%d\n",port,len,mj,n);
+
+    for(i = 1; i <= n; i++) {
+    
+    	memset(s_buf, 0, TOTAL_SEND_SIZE);
+    	s_buf[0] = n;
+    	s_buf[1] = i;
+    
+    	if(i == n && mj > 0) {
+			if(len - PKG_BUF_SIZE > 0) {
+                send_len = (len - PKG_BUF_SIZE*(i-1) +1 +1);
+			}
+    		else {
+                send_len = len;
+			}
+    		memcpy((s_buf +TAG_SIZE), (void*)p, send_len);
+    	}
+    	else {
+    		send_len = TOTAL_SEND_SIZE;
+    		memcpy((s_buf +TAG_SIZE), (void*)p, (send_len -1 -1));
+    	}
+    
+    	printf("%d/%d/%d\n",i,n,send_len);
+    	if(sendto(send_socket_fd, s_buf, send_len, 0, (struct sockaddr*)client, size) < 0) {
+    		perror("sendto");
+    		return -1;
+    	}
+    
+    	p = p + PKG_BUF_SIZE;
     }
+
     return 0;
 }
+//udp byte
 
 
 
@@ -186,7 +223,7 @@ void *worker_thread(void *arg)
     int on = 1; 
     if((setsockopt(sd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)))<0) {  
     	perror("setsockopt failed");  
-    	return -1;
+    	return NULL;
     }  
 
     if(bind(sd, (struct sockaddr*)&addr, sizeof(addr)) != 0)
@@ -254,10 +291,7 @@ void *worker_thread(void *arg)
         }
 #endif
         // send back client's message that came in udpbuffer
-      //  sendto(sd, udpbuffer, bytes, 0, (struct sockaddr*)&addr, sizeof(addr));
          sendToRemoteServer(&addr, frame, frame_size, port+1);
-        // sendToRemoteServer(&addr, NULL, 0, 9426);
-		
 
         /* call the command if user specified one, pass current filename as argument */
         if(command != NULL) {
