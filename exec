@@ -5,14 +5,29 @@
 export LD_LIBRARY_PATH="$(pwd)"
 
 
-cd /home/android/pi/github/mjpg-streamer/main/
-
 #./mjpg_streamer -i "./plugins/input_testpicture/input_testpicture.so -r 320x240" -o "./output_http.so -p 8080 -w ./www"
 
+
+if [[ "$1" == "http" ]]; then
+
+cd /home/pi/coding/github/mjpg-streamer/main
+./mjpg_streamer -i "./input_raspicam.so -x 320 -y 240 -fps 40" -o "./output_http.so -p 8080 -w ./www"
+
+else 
+
+if [[ "$1" == "udp" ]]; then
+
+cd /home/pi/coding/github/mjpg-streamer/main
+./mjpg_streamer -i "./input_raspicam.so -x 320 -y 240 -fps 60" -o "./output_udp.so -p 8080"
+
+else
+
+cd /home/android/pi/github/mjpg-streamer/main
 ./mjpg_streamer -i "./plugins/input_testpicture/input_testpicture.so -r 960x720 -d 50" -o "./output_udp.so -p 8080"
 
 
-
+fi
+fi
 
 
 

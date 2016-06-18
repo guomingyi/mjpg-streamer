@@ -257,7 +257,7 @@ void *worker_thread(void *arg)
 #endif
         // send back client's message that came in udpbuffer
       //  sendto(sd, udpbuffer, bytes, 0, (struct sockaddr*)&addr, sizeof(addr));
-         sendToRemoteServer(&addr, frame, frame_size, 9427);
+         sendToRemoteServer(&addr, frame, frame_size, port+1);
         // sendToRemoteServer(&addr, NULL, 0, 9426);
 		
 
