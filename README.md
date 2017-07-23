@@ -1,4 +1,11 @@
 # mjpg-streamer
+依赖库：jpeglib
+ wget http://www.ijg.org/files/jpegsrc.v8c.tar.gz
+ ./configure
+ make
+ sudo make install
+
+sudo apt-get install cmake
 
 # address
 https://github.com/guomingyi/mjpg-streamer.git
